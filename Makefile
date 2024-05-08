@@ -2,5 +2,8 @@ fmt:
 	go mod tidy -compat=1.17
 	gofmt -l -s -w .
 
-run:
-	go run .
+server:
+	go run ./cmd/server/main.go
+
+client:
+	go run ./cmd/client/main.go
