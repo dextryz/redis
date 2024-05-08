@@ -1,11 +1,14 @@
 package redis
 
 type store struct {
+	path string
 	data map[string]any
 }
 
-func OpenStore() *store {
+func OpenStore(dir string) *store {
+
 	return &store{
+		path: dir,
 		data: make(map[string]any),
 	}
 }

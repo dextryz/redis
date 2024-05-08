@@ -1,8 +1,6 @@
 package redis
 
 import (
-	"encoding/gob"
-	"fmt"
 	"log"
 	"log/slog"
 	"net"
@@ -40,18 +38,12 @@ func (c *client) Set(k string, v any) {
 		Value: v,
 	}
 
-	// Encode the data onto the connection.
-	err := gob.NewEncoder(c.network).Encode(m)
-	if err != nil {
-		log.Fatal(err)
-	}
+	m.Encode(c.network)
 
-	slog.Info("data stored on server", "key", k, "value", v)
+	slog.Info("data sent to server", "key", k, "value", v)
 }
 
 func (c *client) Get(k string) (any, error) {
-
-	fmt.Println("getting")
 
 	m := Message{
 		Fn:  "get",
@@ -59,22 +51,19 @@ func (c *client) Get(k string) (any, error) {
 	}
 
 	// Request the value from the server.
-	err := gob.NewEncoder(c.network).Encode(m)
-	if err != nil {
-		log.Fatal(err)
-	}
+	m.Encode(c.network)
 
 	// Wait for server to response
 	time.Sleep(1 * time.Second)
 
 	// Retrieve the response from the connection.
 	// The result of Value is encode into the message that the server sends back.
-	err = gob.NewDecoder(c.network).Decode(&m)
+	mr, err := DecodeMessage(c.network)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	slog.Info("data retrieved from server", "key", k, "value", m.Value)
+	slog.Info("response from server", "key", k, "value", mr.Value)
 
-	return m.Value, nil
+	return mr.Value, nil
 }

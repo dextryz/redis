@@ -1,23 +1,24 @@
 package redis
 
 import (
-	"encoding/gob"
 	"fmt"
+	"io"
 	"log"
 	"net"
 )
 
 type srv struct {
 	ln    net.Listener
-	store *Store
+	store *store
 }
 
 func NewServer(port string) *srv {
 
-	store := OpenStore()
+	store := OpenStore("")
 
 	ln, err := net.Listen("tcp", port)
 	if err != nil {
+		fmt.Println("XXX")
 		log.Fatal(err)
 	}
 
@@ -41,31 +42,31 @@ func (s srv) Run() {
 			// Read values from connection until EOF
 			for {
 
-				m := Message{}
-
-				// Decode what ever data is on the connection into the data structure.
-				err := gob.NewDecoder(c).Decode(&m)
+				m, err := DecodeMessage(c)
+				if err == io.EOF {
+					break
+				}
 				if err != nil {
+					fmt.Println("AAA")
 					log.Fatal(err)
 				}
 
 				if m.Fn == "set" {
-					fmt.Println("has to Set")
 					s.store.Set(m.Key, m.Value)
 				}
 
 				if m.Fn == "get" {
-					fmt.Println("has to Get")
-					err, v := s.store.Get(m.Key)
+					v, err := s.store.Get(m.Key)
 					if err != nil {
 						log.Fatal(err)
 					}
-					fmt.Println(v)
+					m.Value = v
+					m.Encode(c)
 				}
 
 			}
 
-			//c.Close()
+			c.Close()
 		}(conn)
 	}
 }
